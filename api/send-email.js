@@ -80,7 +80,7 @@ export default async function handler(req, res) {
             },
             body: JSON.stringify({
                 from: 'The Growth Cradle Lead <onboarding@resend.dev>',
-                to: ['aaina@thegrowthcradle.com'],
+                to: ['mshashank559@gmail.com'], // Changed to mshashank559@gmail.com for testing (Resend Sandbox restriction)
                 subject: `New Lead: Discovery Call Request from ${name}`,
                 html: emailHtml,
                 reply_to: email
