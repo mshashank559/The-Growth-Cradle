@@ -330,72 +330,73 @@ document.addEventListener('DOMContentLoaded', () => {
 
 
     /* ==========================================================================
-       7. SCROLL TRIGGER REVEALS — BATCHED for performance
+       7. SCROLL TRIGGER REVEALS — BATCHED for performance (Only on Desktop)
        ========================================================================== */
+    if (!isTouchDevice) {
+        // Batch all card-like elements together → one IntersectionObserver internally
+        ScrollTrigger.batch('.glass-panel', {
+            onEnter: batch => gsap.fromTo(batch,
+                { y: 50, opacity: 0 },
+                { 
+                    y: 0, 
+                    opacity: 1, 
+                    duration: 0.9, 
+                    ease: 'power3.out', 
+                    stagger: 0.08, 
+                    overwrite: 'auto',
+                    clearProps: 'transform,opacity' // clear GSAP styles to allow smooth CSS hover lifts
+                }
+            ),
+            start: 'top 88%',
+            once: true
+        });
 
-    // Batch all card-like elements together → one IntersectionObserver internally
-    ScrollTrigger.batch('.glass-panel', {
-        onEnter: batch => gsap.fromTo(batch,
-            { y: 50, opacity: 0 },
-            { 
-                y: 0, 
-                opacity: 1, 
-                duration: 0.9, 
-                ease: 'power3.out', 
-                stagger: 0.08, 
-                overwrite: 'auto',
-                clearProps: 'transform,opacity' // clear GSAP styles to allow smooth CSS hover lifts
-            }
-        ),
-        start: 'top 88%',
-        once: true
-    });
+        ScrollTrigger.batch('.timeline-step', {
+            onEnter: batch => gsap.fromTo(batch,
+                { x: -30, opacity: 0 },
+                { 
+                    x: 0, 
+                    opacity: 1, 
+                    duration: 0.8, 
+                    ease: 'power3.out', 
+                    stagger: 0.1, 
+                    overwrite: 'auto',
+                    clearProps: 'transform,opacity'
+                }
+            ),
+            start: 'top 88%',
+            once: true
+        });
 
-    ScrollTrigger.batch('.timeline-step', {
-        onEnter: batch => gsap.fromTo(batch,
-            { x: -30, opacity: 0 },
-            { 
-                x: 0, 
-                opacity: 1, 
-                duration: 0.8, 
-                ease: 'power3.out', 
-                stagger: 0.1, 
-                overwrite: 'auto',
-                clearProps: 'transform,opacity'
-            }
-        ),
-        start: 'top 88%',
-        once: true
-    });
+        ScrollTrigger.batch('.industry-badge', {
+            onEnter: batch => gsap.fromTo(batch,
+                { scale: 0.85, opacity: 0 },
+                { 
+                    scale: 1, 
+                    opacity: 1, 
+                    duration: 0.6, 
+                    ease: 'back.out(1.4)', 
+                    stagger: 0.05, 
+                    overwrite: 'auto',
+                    clearProps: 'transform,opacity'
+                }
+            ),
+            start: 'top 90%',
+            once: true
+        });
 
-    ScrollTrigger.batch('.industry-badge', {
-        onEnter: batch => gsap.fromTo(batch,
-            { scale: 0.85, opacity: 0 },
-            { 
-                scale: 1, 
-                opacity: 1, 
-                duration: 0.6, 
-                ease: 'back.out(1.4)', 
-                stagger: 0.05, 
-                overwrite: 'auto',
-                clearProps: 'transform,opacity'
-            }
-        ),
-        start: 'top 90%',
-        once: true
-    });
-
-    // Section headlines
-    document.querySelectorAll('.section-title, .section-label').forEach(el => {
-        gsap.fromTo(el,
-            { y: 25, opacity: 0 },
-            {
-                y: 0, opacity: 1, duration: 0.9, ease: 'power3.out',
-                clearProps: 'transform,opacity',
-                scrollTrigger: { trigger: el, start: 'top 90%', once: true }
-            }
-        );
-    });
+        // Section headlines
+        document.querySelectorAll('.section-title, .section-label').forEach(el => {
+            gsap.fromTo(el,
+                { y: 25, opacity: 0 },
+                {
+                    y: 0, opacity: 1, duration: 0.9, ease: 'power3.out',
+                    clearProps: 'transform,opacity',
+                    scrollTrigger: { trigger: el, start: 'top 90%', once: true }
+                }
+            );
+        });
+    }
 
 
     /* ==========================================================================

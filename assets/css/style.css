@@ -59,13 +59,18 @@
     scroll-behavior: auto; /* Handled by Lenis Inertia Scroll */
 }
 
+html, body {
+    width: 100%;
+    overflow-x: hidden;
+    position: relative;
+}
+
 body {
     background-color: var(--color-bg-light);
     color: var(--color-primary);
     font-family: var(--font-body);
     font-size: 16px;
     line-height: 1.6;
-    overflow-x: hidden;
     -webkit-font-smoothing: antialiased;
 }
 
@@ -80,8 +85,8 @@ body::before {
     position: fixed;
     top: 0;
     left: 0;
-    width: 100vw;
-    height: 100vh;
+    width: 100%;
+    height: 100%;
     opacity: 0.015;
     pointer-events: none;
     z-index: 9999;
@@ -2425,5 +2430,26 @@ a.method-card:hover .method-detail strong {
     .floating-cta {
         bottom: 1rem;
         right: 1rem;
+    }
+}
+
+/* Responsive spacing overrides for smaller screens to prevent content overflow */
+@media (max-width: 768px) {
+    .compare-card,
+    .case-card,
+    .problem-card,
+    .step-content {
+        padding: 1.5rem 1.25rem !important;
+    }
+    
+    .compare-list li {
+        gap: 0.75rem !important;
+        margin-bottom: 1rem !important;
+        font-size: 0.9rem !important;
+        line-height: 1.4 !important;
+    }
+
+    .section {
+        padding: 4rem 0 !important; /* reduce spacing on mobile */
     }
 }
