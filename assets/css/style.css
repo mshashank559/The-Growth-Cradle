@@ -1945,22 +1945,26 @@ a {
     border-radius: var(--border-radius-lg);
 }
 
-.form-logo {
-    height: 35px;
-    width: auto;
-    object-fit: contain;
+.form-logo-wrapper {
+    display: flex;
+    align-items: center;
+    width: 140px;
+    height: 40px;
+    overflow: hidden;
+    position: relative;
     margin-bottom: 2rem;
 }
 
-.form-logo.logo-light {
-    display: none;
-}
-
-.dark-section .form-logo.logo-dark {
-    display: none;
-}
-.dark-section .form-logo.logo-light {
-    display: block;
+.form-logo {
+    height: 74px;
+    width: 74px;
+    object-fit: contain;
+    position: absolute;
+    top: 50%;
+    left: -4px;
+    transform: translateY(-50%) scale(1.55);
+    border-radius: 0;
+    pointer-events: none;
 }
 
 .form-title {

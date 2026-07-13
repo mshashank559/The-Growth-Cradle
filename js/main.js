@@ -493,6 +493,9 @@ document.addEventListener('DOMContentLoaded', () => {
             const btnText   = submitBtn?.querySelector('span');
             const name      = document.getElementById('name')?.value;
             const email     = document.getElementById('email')?.value;
+            const phone     = document.getElementById('phone')?.value;
+            const role      = document.getElementById('role')?.value;
+            const message   = document.getElementById('message')?.value;
 
             if (formFeedback) {
                 formFeedback.textContent = 'Sending your request…';
@@ -501,15 +504,42 @@ document.addEventListener('DOMContentLoaded', () => {
             if (submitBtn) submitBtn.disabled = true;
             if (btnText)   btnText.textContent = 'Sending…';
 
-            setTimeout(() => {
+            // Post form details to Serverless Vercel function
+            fetch('/api/send-email', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ name, email, phone, role, message })
+            })
+            .then(async (response) => {
+                const data = await response.json();
+                if (!response.ok) {
+                    throw new Error(data.error || 'Failed to submit form.');
+                }
+                return data;
+            })
+            .then((data) => {
                 if (formFeedback) {
-                    formFeedback.textContent = `Thank you, ${name}! We'll be in touch at ${email} to confirm your Discovery Call.`;
+                    formFeedback.textContent = `Thank you, ${name}! Your request has been sent. We'll be in touch soon.`;
+                    formFeedback.className   = 'form-feedback success';
                 }
                 contactForm.reset();
+            })
+            .catch((error) => {
+                console.error('Submission error:', error);
+                if (formFeedback) {
+                    formFeedback.textContent = error.message || 'Something went wrong. Please try again.';
+                    formFeedback.className   = 'form-feedback error';
+                }
+            })
+            .finally(() => {
                 if (submitBtn) submitBtn.disabled = false;
                 if (btnText)   btnText.textContent = 'Book Discovery Call';
-                setTimeout(() => { if (formFeedback) formFeedback.textContent = ''; }, 8000);
-            }, 1500);
+                setTimeout(() => { 
+                    if (formFeedback) formFeedback.textContent = ''; 
+                }, 8000);
+            });
         });
     }
 
