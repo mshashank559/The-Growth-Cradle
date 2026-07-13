@@ -6,14 +6,17 @@
 
 document.addEventListener('DOMContentLoaded', () => {
 
+    // Global device detection
+    const isTouchDevice = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
+
     // Ensure GSAP and ScrollTrigger are loaded
     gsap.registerPlugin(ScrollTrigger);
 
     /* ==========================================================================
-       1. SMOOTH INERTIA SCROLL (LENIS) — properly wired to GSAP ticker
+       1. SMOOTH INERTIA SCROLL (LENIS) — only on desktop/laptops (non-touch)
        ========================================================================== */
     let lenis;
-    if (typeof Lenis !== 'undefined') {
+    if (typeof Lenis !== 'undefined' && !isTouchDevice) {
         lenis = new Lenis({
             duration: 1.0,
             easing: (t) => Math.min(1, 1.001 - Math.pow(2, -10 * t)),
@@ -43,7 +46,6 @@ document.addEventListener('DOMContentLoaded', () => {
     let rafCursorId;
 
     // Turn off mouse follower completely on mobile/touch screens
-    const isTouchDevice = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
     if (isTouchDevice) {
         if (cursor) cursor.style.display = 'none';
         if (cursorDot) cursorDot.style.display = 'none';
@@ -167,6 +169,34 @@ document.addEventListener('DOMContentLoaded', () => {
     let ticking = false; // rAF-throttle the scroll handler
     let navbarHidden = false;
 
+    // Cache layout dimensions to prevent layout thrashing inside scroll loop
+    let heroBottom = 600;
+    let darkSectionRanges = [];
+
+    function cacheLayoutDimensions() {
+        const scrollTop = window.scrollY;
+        
+        // Cache hero section dimensions
+        if (heroSection) {
+            heroBottom = heroSection.offsetTop + heroSection.offsetHeight;
+        }
+
+        // Cache dark sections dimensions
+        darkSectionRanges = [];
+        document.querySelectorAll('.dark-section').forEach(sec => {
+            const rect = sec.getBoundingClientRect();
+            darkSectionRanges.push({
+                top: rect.top + scrollTop,
+                bottom: rect.bottom + scrollTop
+            });
+        });
+    }
+
+    // Run caching once page content loads and whenever window changes sizes
+    window.addEventListener('load', cacheLayoutDimensions);
+    window.addEventListener('resize', cacheLayoutDimensions);
+    cacheLayoutDimensions();
+
     function onScroll() {
         if (!ticking) {
             requestAnimationFrame(handleScroll);
@@ -188,8 +218,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         // --- hero dark mode: transparent navbar over dark video hero ---
         if (isVideoBgHero) {
-            const heroBottom = heroSection.offsetTop + heroSection.offsetHeight;
-            const onHero     = scrollTop < heroBottom - 100;
+            const onHero = scrollTop < heroBottom - 100;
             navbar.classList.toggle('navbar-dark', onHero);
             navbar.classList.toggle('hero-is-dark', onHero);
 
@@ -198,13 +227,15 @@ document.addEventListener('DOMContentLoaded', () => {
             if (lightLogo) lightLogo.style.display = onHero ? 'none' : '';
             if (darkLogo)  darkLogo.style.display  = onHero ? 'block' : '';
         } else {
-            // detect other dark sections
-            const darkSections = document.querySelectorAll('.dark-section');
+            // Detect if navbar is over dark sections using cached coordinates (avoiding layout thrashing)
             let isOverDark = false;
-            darkSections.forEach(sec => {
-                const r = sec.getBoundingClientRect();
-                if (r.top <= 80 && r.bottom >= 80) isOverDark = true;
-            });
+            for (let i = 0; i < darkSectionRanges.length; i++) {
+                const range = darkSectionRanges[i];
+                if (scrollTop >= range.top - 80 && scrollTop <= range.bottom - 80) {
+                    isOverDark = true;
+                    break;
+                }
+            }
             navbar.classList.toggle('navbar-dark', isOverDark);
         }
 
@@ -227,12 +258,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
         // --- floating CTA ---
         if (floatingCta) {
-            const heroH = heroSection?.offsetHeight || 600;
-            floatingCta.classList.toggle('visible', scrollTop > heroH * 0.8);
+            floatingCta.classList.toggle('visible', scrollTop > heroBottom * 0.8);
         }
 
         lastScrollTop = Math.max(0, scrollTop);
-        updateActiveLink();
         ticking = false;
     }
 
@@ -241,20 +270,30 @@ document.addEventListener('DOMContentLoaded', () => {
 
 
     /* ==========================================================================
-       6. ACTIVE NAVIGATION LINK HIGHLIGHTING
+       6. ACTIVE NAVIGATION LINK HIGHLIGHTING — Asynchronous IntersectionObserver
        ========================================================================== */
     const sections = document.querySelectorAll('section[id]');
     const navLinks = document.querySelectorAll('.nav-link');
 
-    function updateActiveLink() {
-        const scrollPos = window.scrollY + 160;
-        let current = '';
-        sections.forEach(sec => {
-            if (scrollPos >= sec.offsetTop) current = sec.id;
-        });
-        navLinks.forEach(link => {
-            link.classList.toggle('active', link.getAttribute('href') === `#${current}`);
-        });
+    if ('IntersectionObserver' in window) {
+        const observerOptions = {
+            root: null,
+            rootMargin: '-25% 0px -55% 0px', // triggers when section dominates the active area
+            threshold: 0
+        };
+
+        const activeLinkObserver = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    const id = entry.target.getAttribute('id');
+                    navLinks.forEach(link => {
+                        link.classList.toggle('active', link.getAttribute('href') === `#${id}`);
+                    });
+                }
+            });
+        }, observerOptions);
+
+        sections.forEach(sec => activeLinkObserver.observe(sec));
     }
 
     // Mobile menu toggle
@@ -273,7 +312,7 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // Smooth anchor scroll via Lenis
+    // Smooth anchor scroll via Lenis or native smooth scroll fallback
     document.querySelectorAll('a[href^="#"]').forEach(anchor => {
         anchor.addEventListener('click', (e) => {
             const targetId = anchor.getAttribute('href');
@@ -298,7 +337,15 @@ document.addEventListener('DOMContentLoaded', () => {
     ScrollTrigger.batch('.glass-panel', {
         onEnter: batch => gsap.fromTo(batch,
             { y: 50, opacity: 0 },
-            { y: 0, opacity: 1, duration: 0.9, ease: 'power3.out', stagger: 0.08, overwrite: 'auto' }
+            { 
+                y: 0, 
+                opacity: 1, 
+                duration: 0.9, 
+                ease: 'power3.out', 
+                stagger: 0.08, 
+                overwrite: 'auto',
+                clearProps: 'transform,opacity' // clear GSAP styles to allow smooth CSS hover lifts
+            }
         ),
         start: 'top 88%',
         once: true
@@ -307,7 +354,15 @@ document.addEventListener('DOMContentLoaded', () => {
     ScrollTrigger.batch('.timeline-step', {
         onEnter: batch => gsap.fromTo(batch,
             { x: -30, opacity: 0 },
-            { x: 0, opacity: 1, duration: 0.8, ease: 'power3.out', stagger: 0.1, overwrite: 'auto' }
+            { 
+                x: 0, 
+                opacity: 1, 
+                duration: 0.8, 
+                ease: 'power3.out', 
+                stagger: 0.1, 
+                overwrite: 'auto',
+                clearProps: 'transform,opacity'
+            }
         ),
         start: 'top 88%',
         once: true
@@ -316,7 +371,15 @@ document.addEventListener('DOMContentLoaded', () => {
     ScrollTrigger.batch('.industry-badge', {
         onEnter: batch => gsap.fromTo(batch,
             { scale: 0.85, opacity: 0 },
-            { scale: 1, opacity: 1, duration: 0.6, ease: 'back.out(1.4)', stagger: 0.05, overwrite: 'auto' }
+            { 
+                scale: 1, 
+                opacity: 1, 
+                duration: 0.6, 
+                ease: 'back.out(1.4)', 
+                stagger: 0.05, 
+                overwrite: 'auto',
+                clearProps: 'transform,opacity'
+            }
         ),
         start: 'top 90%',
         once: true
@@ -328,6 +391,7 @@ document.addEventListener('DOMContentLoaded', () => {
             { y: 25, opacity: 0 },
             {
                 y: 0, opacity: 1, duration: 0.9, ease: 'power3.out',
+                clearProps: 'transform,opacity',
                 scrollTrigger: { trigger: el, start: 'top 90%', once: true }
             }
         );
