@@ -42,35 +42,42 @@ document.addEventListener('DOMContentLoaded', () => {
     let dotX = 0, dotY = 0;
     let rafCursorId;
 
-    document.addEventListener('mousemove', (e) => {
-        mouseX = e.clientX;
-        mouseY = e.clientY;
-    });
+    // Turn off mouse follower completely on mobile/touch screens
+    const isTouchDevice = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
+    if (isTouchDevice) {
+        if (cursor) cursor.style.display = 'none';
+        if (cursorDot) cursorDot.style.display = 'none';
+    } else {
+        document.addEventListener('mousemove', (e) => {
+            mouseX = e.clientX;
+            mouseY = e.clientY;
+        });
 
-    // Single rAF loop — use transform instead of left/top (avoids layout)
-    function renderCursor() {
-        cursorX += (mouseX - cursorX) * 0.1;
-        cursorY += (mouseY - cursorY) * 0.1;
-        dotX   += (mouseX - dotX)    * 0.28;
-        dotY   += (mouseY - dotY)    * 0.28;
+        // Single rAF loop — use transform instead of left/top (avoids layout)
+        function renderCursor() {
+            cursorX += (mouseX - cursorX) * 0.1;
+            cursorY += (mouseY - cursorY) * 0.1;
+            dotX   += (mouseX - dotX)    * 0.28;
+            dotY   += (mouseY - dotY)    * 0.28;
 
-        if (cursor) cursor.style.transform = `translate(${cursorX - 12}px, ${cursorY - 12}px)`;
-        if (cursorDot) cursorDot.style.transform = `translate(${dotX - 2.5}px, ${dotY - 2.5}px)`;
+            if (cursor) cursor.style.transform = `translate(${cursorX - 12}px, ${cursorY - 12}px)`;
+            if (cursorDot) cursorDot.style.transform = `translate(${dotX - 2.5}px, ${dotY - 2.5}px)`;
 
-        rafCursorId = requestAnimationFrame(renderCursor);
+            rafCursorId = requestAnimationFrame(renderCursor);
+        }
+        renderCursor();
+
+        // Hover expansions — throttled via CSS transitions
+        const hoverTargets = document.querySelectorAll('.hover-target');
+        hoverTargets.forEach(target => {
+            target.addEventListener('mouseenter', () => {
+                if (cursor) cursor.classList.add('hovering');
+            });
+            target.addEventListener('mouseleave', () => {
+                if (cursor) cursor.classList.remove('hovering');
+            });
+        });
     }
-    renderCursor();
-
-    // Hover expansions — throttled via CSS transitions
-    const hoverTargets = document.querySelectorAll('.hover-target');
-    hoverTargets.forEach(target => {
-        target.addEventListener('mouseenter', () => {
-            if (cursor) cursor.classList.add('hovering');
-        });
-        target.addEventListener('mouseleave', () => {
-            if (cursor) cursor.classList.remove('hovering');
-        });
-    });
 
 
     /* ==========================================================================
@@ -158,6 +165,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     let lastScrollTop = 0;
     let ticking = false; // rAF-throttle the scroll handler
+    let navbarHidden = false;
 
     function onScroll() {
         if (!ticking) {
@@ -200,16 +208,21 @@ document.addEventListener('DOMContentLoaded', () => {
             navbar.classList.toggle('navbar-dark', isOverDark);
         }
 
-        // --- hide/show navbar on scroll direction ---
+        // --- hide/show navbar on scroll direction (state-throttled for performance) ---
         if (scrollTop > 200) {
-            gsap.to(navbar, {
-                y: scrollTop > lastScrollTop ? -100 : 0,
-                duration: 0.35,
-                ease: 'power2.out',
-                overwrite: 'auto'
-            });
+            const isScrollingDown = scrollTop > lastScrollTop;
+            if (isScrollingDown && !navbarHidden) {
+                navbarHidden = true;
+                gsap.to(navbar, { y: -100, duration: 0.35, ease: 'power2.out', overwrite: 'auto' });
+            } else if (!isScrollingDown && navbarHidden) {
+                navbarHidden = false;
+                gsap.to(navbar, { y: 0, duration: 0.35, ease: 'power2.out', overwrite: 'auto' });
+            }
         } else {
-            gsap.to(navbar, { y: 0, duration: 0.35, ease: 'power2.out', overwrite: 'auto' });
+            if (navbarHidden) {
+                navbarHidden = false;
+                gsap.to(navbar, { y: 0, duration: 0.35, ease: 'power2.out', overwrite: 'auto' });
+            }
         }
 
         // --- floating CTA ---
