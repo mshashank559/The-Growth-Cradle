@@ -1,0 +1,9 @@
+{
+  "name": "the-growth-cradle",
+  "version": "1.0.0",
+  "description": "The Growth Cradle — Premium Personal Branding Agency Website",
+  "scripts": {
+    "dev": "npx serve . -p 8000 --no-clipboard",
+    "start": "npx serve . -p 8000 --no-clipboard"
+  }
+}
